@@ -214,7 +214,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     }
     func makeStrip() -> PlayerStrip {
         let strip = PlayerStrip(frame: NSRect(x: 0, y: 0, width: 640, height: 30))
-        strip.command = { [weak self] action, value, uri in self?.bridge.enqueue(action, value: value, uri: uri) }
+        strip.command = { [weak self] action, value, uri in
+            guard let self else { return }
+            if action == "playlist" { self.showPlaylistMenu(); return }
+            self.bridge.enqueue(action, value: value, uri: uri)
+        }
         strips.append(strip)
         strip.update(bridge.state, online: bridge.online)
         return strip
@@ -258,14 +262,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         timeLabel?.stringValue = "\(time(position)) / \(time(duration))"
     }
     @objc func playlistAction(_ sender: NSButton) {
+        showPlaylistMenu(anchor: sender)
+    }
+    func showPlaylistMenu(anchor: NSView? = nil) {
         let menu = NSMenu(); menu.addItem(withTitle: tr("Chargement…", "Loading…"), action: nil, keyEquivalent: "")
-        sender.menu = menu; sender.performClick(nil)
-        account.fetchPlaylists { [weak self, weak sender] playlists in
-            guard let self, let sender else { return }
+        if let anchor { menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor) }
+        else { status.menu?.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: status.button) }
+        account.fetchPlaylists { [weak self] playlists in
+            guard let self else { return }
             let m = NSMenu();
             if playlists.isEmpty { m.addItem(withTitle: tr("Aucune playlist disponible", "No playlists available"), action: nil, keyEquivalent: "") }
             for playlist in playlists { let item = NSMenuItem(title: playlist.name, action: #selector(self.addToPlaylist(_:)), keyEquivalent: ""); item.target = self; item.representedObject = playlist.id; m.addItem(item) }
-            sender.menu = m; sender.performClick(nil)
+            if let anchor { m.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor) }
+            else { m.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: self.status.button) }
         }
     }
     @objc func addToPlaylist(_ sender: NSMenuItem) {

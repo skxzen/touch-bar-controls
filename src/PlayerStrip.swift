@@ -90,7 +90,7 @@ final class PlayerStrip: NSView {
     let artist = NSTextField(labelWithString: tr("Ouvre Spotify pour commencer", "Open Spotify to get started"))
     let elapsed = NSTextField(labelWithString: "0:00")
     let remaining = NSTextField(labelWithString: "−0:00")
-    let previous = TransportButton(), play = TransportButton(), next = TransportButton()
+    let previous = TransportButton(), play = TransportButton(), next = TransportButton(), playlist = TransportButton()
     let progress = TrackedSlider()
     var command: ((String, Double?, String?) -> Void)?
     var uri = "", seekURI = "", imageURL = "__initial__"
@@ -102,7 +102,7 @@ final class PlayerStrip: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true; layer?.backgroundColor = NSColor.black.cgColor
-        for v in [mark, brand, artwork, title, artist, elapsed, remaining, previous, play, next, progress] { addSubview(v) }
+        for v in [mark, brand, artwork, title, artist, elapsed, remaining, previous, play, next, playlist, progress] { addSubview(v) }
         mark.image = Bundle.main.image(forResource: "Spotify_icon")
         mark.imageScaling = .scaleProportionallyUpOrDown
         mark.setAccessibilityLabel("Spotify")
@@ -118,6 +118,7 @@ final class PlayerStrip: NSView {
             b.contentTintColor = .white; b.identifier = .init(action); b.target = self; b.action = #selector(pressed(_:)); b.setAccessibilityLabel(label)
         }
         play.ring = true
+        playlist.isBordered = false; playlist.imagePosition = .imageOnly; playlist.image = NSImage(systemSymbolName: "text.badge.plus", accessibilityDescription: tr("Ajouter à une playlist", "Add to playlist")); playlist.contentTintColor = .white; playlist.target = self; playlist.action = #selector(pressed(_:)); playlist.identifier = .init("playlist"); playlist.setAccessibilityLabel(tr("Ajouter le titre à une playlist", "Add track to a playlist"))
         for (s, label) in [(progress,tr("Progression du morceau", "Track progress"))] {
             s.isContinuous = false; s.target = self; s.setAccessibilityLabel(label)
         }
@@ -141,6 +142,7 @@ final class PlayerStrip: NSView {
         previous.frame = NSRect(x: x, y: 1, width: 28, height: 28); x += 32
         play.frame = NSRect(x: x, y: 0, width: 30, height: 30); x += 34
         next.frame = NSRect(x: x, y: 1, width: 28, height: 28); x += 38
+        playlist.frame = NSRect(x: x, y: 1, width: 28, height: 28); x += 34
         remaining.frame = NSRect(x: w - 43, y: 8, width: 37, height: 14)
         elapsed.frame = NSRect(x: x, y: 8, width: 35, height: 14); x += 38
         progress.frame = NSRect(x: x, y: 2, width: max(35, remaining.frame.minX - x - 6), height: 26)
@@ -157,7 +159,7 @@ final class PlayerStrip: NSView {
         artist.stringValue = online ? (state["artist"] as? String ?? "") : tr("Ouvre Spotify pour commencer", "Open Spotify to get started")
         title.toolTip = title.stringValue; artist.toolTip = artist.stringValue
         play.image = NSImage(systemSymbolName: state["playing"] as? Bool == true ? "pause.fill" : "play.fill", accessibilityDescription: "Lecture / pause")
-        for b in [previous, play, next] { b.isEnabled = online }
+        for b in [previous, play, next, playlist] { b.isEnabled = online && !uri.isEmpty }
         duration = max(0, state["duration"] as? Double ?? 0)
         let position = min(duration, max(0, state["position"] as? Double ?? 0))
         if !progress.tracking && Date().timeIntervalSince(lastSeek) > 1 { progress.doubleValue = duration > 0 ? position / duration : 0 }
