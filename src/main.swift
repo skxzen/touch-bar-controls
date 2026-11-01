@@ -117,6 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     var brightnessOriginal = -1.0
     var brightnessModified = false
     var brightnessSyncInFlight = false
+    var alwaysShow = UserDefaults.standard.bool(forKey: "alwaysShowTouchBar")
     // The Touch Bar's OLED contrast makes an equal numeric level look brighter
     // than the main display. Keep the match perceptual rather than electrical.
     let brightnessSyncScale = 0.80
@@ -144,6 +145,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         for (title, selector) in [(tr("Afficher la Touch Bar", "Show Touch Bar"), #selector(showBar)), (tr("Panneau et luminosité", "Panel and brightness"), #selector(showWindow)), (tr("Ouvrir Spotify", "Open Spotify"), #selector(openSpotify)), (tr("Masquer la Touch Bar", "Hide Touch Bar"), #selector(hideBar)), (tr("Quitter", "Quit"), #selector(quit))] {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: ""); item.target = self; menu.addItem(item)
         }
+        let always = NSMenuItem(title: tr("Garder la Touch Bar visible hors lecture", "Keep Touch Bar visible when paused"), action: #selector(toggleAlwaysShow(_:)), keyEquivalent: "")
+        always.target = self; always.state = alwaysShow ? .on : .off; always.identifier = .init("alwaysShow"); menu.insertItem(always, at: 0)
         for (title, action) in [(tr("Ajouter / retirer des favoris", "Like / unlike"), "heart"), (tr("Aléatoire", "Shuffle"), "shuffle"), (tr("Répétition", "Repeat"), "repeat")] {
             let item = NSMenuItem(title: title, action: #selector(menuCommand(_:)), keyEquivalent: "")
             item.target = self; item.representedObject = action; menu.insertItem(item, at: 3)
@@ -229,8 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         let online = bridge.online || !account.playback.isEmpty
         for strip in strips { strip.update(s, online: online) }
         let playing = s["playing"] as? Bool == true
-        if online && playing && !barShown { showBar() }
-        if (!online || !playing) && barShown { hideBar() }
+        if (alwaysShow || (online && playing)) && !barShown { showBar() }
+        if !alwaysShow && (!online || !playing) && barShown { hideBar() }
         let title = s["title"] as? String ?? "Aucun titre"
         let artist = s["artist"] as? String ?? ""
         let track = artist.isEmpty ? title : "\(title) — \(artist)"
@@ -260,6 +263,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         seekSlider?.isEnabled = online && duration > 0; volumeSlider?.isEnabled = online
         func time(_ ms: Double) -> String { let n = max(0, Int(ms / 1000)); return String(format: "%d:%02d", n / 60, n % 60) }
         timeLabel?.stringValue = "\(time(position)) / \(time(duration))"
+    }
+    @objc func toggleAlwaysShow(_ sender: NSMenuItem) {
+        alwaysShow.toggle(); UserDefaults.standard.set(alwaysShow, forKey: "alwaysShowTouchBar"); sender.state = alwaysShow ? .on : .off
+        if alwaysShow { showBar() } else { refresh() }
     }
     @objc func playlistAction(_ sender: NSButton) {
         showPlaylistMenu(anchor: sender)
