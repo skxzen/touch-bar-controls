@@ -1,0 +1,7 @@
+.build/
+*.o
+*.app/
+backup/
+pairing.txt
+.DS_Store
+
