@@ -98,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     var status: NSStatusItem!
     var bar = NSTouchBar()
     var window: NSWindow!
-    var info = NSTextField(labelWithString: "Connexion à Spotify…")
+    var info = NSTextField(labelWithString: tr("Connexion à Spotify…", "Connecting to Spotify…"))
     var detail = NSTextField(labelWithString: "")
     var buttons: [String: [NSButton]] = [:]
     var strips: [PlayerStrip] = []
@@ -108,11 +108,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     var timeLabel: NSTextField?
     let brightnessSlider = NSSlider(value: 50, minValue: 1, maxValue: 100, target: nil, action: nil)
     let brightnessValue = NSTextField(labelWithString: "— %")
-    let brightnessStatus = NSTextField(wrappingLabelWithString: "Recherche de la Touch Bar…")
-    let brightnessHold = NSButton(checkboxWithTitle: "Maintenir ce niveau tant que l’app est ouverte", target: nil, action: nil)
-    let brightnessSync = NSButton(checkboxWithTitle: "Synchroniser avec la luminosité de l’écran principal", target: nil, action: nil)
-    let accountButton = NSButton(title: "Lier mon compte Spotify", target: nil, action: nil)
-    let accountStatus = NSTextField(labelWithString: "Compte Spotify non lié")
+    let brightnessStatus = NSTextField(wrappingLabelWithString: tr("Recherche de la Touch Bar…", "Looking for the Touch Bar…"))
+    let brightnessHold = NSButton(checkboxWithTitle: tr("Maintenir ce niveau tant que l’app est ouverte", "Hold this level while the app is open"), target: nil, action: nil)
+    let brightnessSync = NSButton(checkboxWithTitle: tr("Synchroniser avec la luminosité de l’écran principal", "Sync with the main display brightness"), target: nil, action: nil)
+    let accountButton = NSButton(title: tr("Lier mon compte Spotify", "Link my Spotify account"), target: nil, action: nil)
+    let accountStatus = NSTextField(labelWithString: tr("Compte Spotify non lié", "Spotify account not linked"))
     var brightnessOriginal = -1.0
     var brightnessModified = false
     var brightnessSyncInFlight = false
@@ -140,10 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         status.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Spotify Touch Bar")
         let menu = NSMenu()
-        for (title, selector) in [("Afficher la Touch Bar", #selector(showBar)), ("Panneau et luminosité", #selector(showWindow)), ("Ouvrir Spotify", #selector(openSpotify)), ("Masquer la Touch Bar", #selector(hideBar)), ("Quitter", #selector(quit))] {
+        for (title, selector) in [(tr("Afficher la Touch Bar", "Show Touch Bar"), #selector(showBar)), (tr("Panneau et luminosité", "Panel and brightness"), #selector(showWindow)), (tr("Ouvrir Spotify", "Open Spotify"), #selector(openSpotify)), (tr("Masquer la Touch Bar", "Hide Touch Bar"), #selector(hideBar)), (tr("Quitter", "Quit"), #selector(quit))] {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: ""); item.target = self; menu.addItem(item)
         }
-        for (title, action) in [("Ajouter / retirer des favoris", "heart"), ("Aléatoire", "shuffle"), ("Répétition", "repeat")] {
+        for (title, action) in [(tr("Ajouter / retirer des favoris", "Like / unlike"), "heart"), (tr("Aléatoire", "Shuffle"), "shuffle"), (tr("Répétition", "Repeat"), "repeat")] {
             let item = NSMenuItem(title: title, action: #selector(menuCommand(_:)), keyEquivalent: "")
             item.target = self; item.representedObject = action; menu.insertItem(item, at: 3)
         }
@@ -168,16 +168,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         info.widthAnchor.constraint(equalToConstant: 570).isActive = true
         detail.textColor = .secondaryLabelColor; detail.font = .systemFont(ofSize: 12)
         detail.widthAnchor.constraint(equalToConstant: 570).isActive = true
-        let row = NSStackView(views: [makeButton("previous", "⏮"), makeButton("play", "▶"), makeButton("next", "⏭"), makeButton("heart", "♡"), makeButton("shuffle", "Aléatoire"), makeButton("repeat", "Répétition"), makeButton("mute", "Son")])
+        let row = NSStackView(views: [makeButton("previous", "⏮"), makeButton("play", "▶"), makeButton("next", "⏭"), makeButton("heart", "♡"), makeButton("shuffle", tr("Aléatoire", "Shuffle")), makeButton("repeat", tr("Répétition", "Repeat")), makeButton("mute", tr("Son", "Sound"))])
         row.spacing = 8
-        let show = NSButton(title: "Afficher les commandes sur la Touch Bar", target: self, action: #selector(showBar))
+        let show = NSButton(title: tr("Afficher les commandes sur la Touch Bar", "Show controls on the Touch Bar"), target: self, action: #selector(showBar))
         accountButton.target = self; accountButton.action = #selector(accountAction(_:))
         accountStatus.textColor = .secondaryLabelColor; accountStatus.font = .systemFont(ofSize: 11)
         let preview = makeStrip()
         preview.widthAnchor.constraint(equalToConstant: 640).isActive = true
         preview.heightAnchor.constraint(equalToConstant: 30).isActive = true
         let divider = NSBox(); divider.boxType = .separator; divider.widthAnchor.constraint(equalToConstant: 640).isActive = true
-        let brightnessTitle = NSTextField(labelWithString: "Luminosité de la Touch Bar")
+        let brightnessTitle = NSTextField(labelWithString: tr("Luminosité de la Touch Bar", "Touch Bar brightness"))
         brightnessTitle.font = .systemFont(ofSize: 14, weight: .semibold)
         brightnessValue.font = .monospacedDigitSystemFont(ofSize: 15, weight: .medium)
         brightnessValue.alignment = .right; brightnessValue.widthAnchor.constraint(equalToConstant: 58).isActive = true
@@ -188,8 +188,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         brightnessSync.target = self; brightnessSync.action = #selector(brightnessSyncChanged(_:))
         brightnessStatus.textColor = .secondaryLabelColor; brightnessStatus.font = .systemFont(ofSize: 11)
         brightnessStatus.widthAnchor.constraint(equalToConstant: 640).isActive = true
-        let reconnect = NSButton(title: "Reconnecter la Touch Bar", target: self, action: #selector(reconnectBrightness(_:)))
-        let restore = NSButton(title: "Rendre la main à macOS", target: self, action: #selector(restoreBrightness(_:)))
+        let reconnect = NSButton(title: tr("Reconnecter la Touch Bar", "Reconnect Touch Bar"), target: self, action: #selector(reconnectBrightness(_:)))
+        let restore = NSButton(title: tr("Rendre la main à macOS", "Return control to macOS"), target: self, action: #selector(restoreBrightness(_:)))
         let brightnessRow = NSStackView(views: [brightnessTitle, brightnessSlider, brightnessValue]); brightnessRow.spacing = 12; brightnessRow.alignment = .centerY
         let brightnessActions = NSStackView(views: [restore, reconnect]); brightnessActions.spacing = 10
         let accountRow = NSStackView(views: [accountButton, accountStatus]); accountRow.spacing = 12; accountRow.alignment = .centerY

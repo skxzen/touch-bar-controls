@@ -86,8 +86,8 @@ final class PlayerStrip: NSView {
     let mark = NSImageView()
     let brand = NSTextField(labelWithString: "Spotify")
     let artwork = NSImageView()
-    let title = NSTextField(labelWithString: "Spotify déconnecté")
-    let artist = NSTextField(labelWithString: "Ouvre Spotify pour commencer")
+    let title = NSTextField(labelWithString: tr("Spotify déconnecté", "Spotify disconnected"))
+    let artist = NSTextField(labelWithString: tr("Ouvre Spotify pour commencer", "Open Spotify to get started"))
     let elapsed = NSTextField(labelWithString: "0:00")
     let remaining = NSTextField(labelWithString: "−0:00")
     let previous = TransportButton(), play = TransportButton(), next = TransportButton()
@@ -113,17 +113,17 @@ final class PlayerStrip: NSView {
         for label in [elapsed, remaining] { label.font = .monospacedDigitSystemFont(ofSize: 9, weight: .regular); label.textColor = .lightGray; label.alignment = .center }
         artwork.wantsLayer = true; artwork.layer?.cornerRadius = 3; artwork.layer?.masksToBounds = true; artwork.imageScaling = .scaleProportionallyUpOrDown
         artwork.contentTintColor = .gray
-        for (b, symbol, label, action) in [(previous,"backward.end.fill","Précédent","previous"), (play,"play.fill","Lecture / pause","play"), (next,"forward.end.fill","Suivant","next")] {
+        for (b, symbol, label, action) in [(previous,"backward.end.fill",tr("Précédent", "Previous"),"previous"), (play,"play.fill",tr("Lecture / pause", "Play / pause"),"play"), (next,"forward.end.fill",tr("Suivant", "Next"),"next")] {
             b.isBordered = false; b.imagePosition = .imageOnly; b.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
             b.contentTintColor = .white; b.identifier = .init(action); b.target = self; b.action = #selector(pressed(_:)); b.setAccessibilityLabel(label)
         }
         play.ring = true
-        for (s, label) in [(progress,"Progression du morceau")] {
+        for (s, label) in [(progress,tr("Progression du morceau", "Track progress"))] {
             s.isContinuous = false; s.target = self; s.setAccessibilityLabel(label)
         }
         progress.action = #selector(seek(_:))
         progress.beginTracking = { [weak self] in self?.seekURI = self?.uri ?? "" }
-        toolTip = "Progression directe. Favoris, aléatoire et répétition dans le menu ♪."
+        toolTip = tr("Progression directe. Favoris, aléatoire et répétition dans le menu ♪.", "Direct seeking. Like, shuffle and repeat are in the menu ♪.")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func layout() {
@@ -153,8 +153,8 @@ final class PlayerStrip: NSView {
     }
     func update(_ state: [String: Any], online: Bool) {
         uri = state["uri"] as? String ?? ""
-        title.stringValue = online ? (state["title"] as? String ?? "Aucun titre") : "Spotify déconnecté"
-        artist.stringValue = online ? (state["artist"] as? String ?? "") : "Ouvre Spotify pour commencer"
+        title.stringValue = online ? (state["title"] as? String ?? tr("Aucun titre", "No title")) : tr("Spotify déconnecté", "Spotify disconnected")
+        artist.stringValue = online ? (state["artist"] as? String ?? "") : tr("Ouvre Spotify pour commencer", "Open Spotify to get started")
         title.toolTip = title.stringValue; artist.toolTip = artist.stringValue
         play.image = NSImage(systemSymbolName: state["playing"] as? Bool == true ? "pause.fill" : "play.fill", accessibilityDescription: "Lecture / pause")
         for b in [previous, play, next] { b.isEnabled = online }
@@ -169,7 +169,7 @@ final class PlayerStrip: NSView {
     func loadArtwork(_ source: String) {
         guard source != imageURL else { return }
         imageURL = source; imageTask?.cancel()
-        artwork.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Pochette")
+        artwork.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: tr("Pochette", "Artwork"))
         guard let url = URL(string: source), url.scheme == "https", url.host == "i.scdn.co" else { return }
         var request = URLRequest(url: url); request.timeoutInterval = 8
         imageTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in

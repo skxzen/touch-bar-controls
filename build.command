@@ -7,7 +7,7 @@ export MACOSX_DEPLOYMENT_TARGET=12.0
 for ARCH in arm64 x86_64; do
   clang -arch "$ARCH" -fobjc-arc -c src/TouchBarBridge.m -o ".build/TouchBarBridge-$ARCH.o"
   clang -arch "$ARCH" -fobjc-arc -c src/BrightnessBridge.m -o ".build/BrightnessBridge-$ARCH.o"
-  swiftc -target "$ARCH-apple-macosx12.0" -swift-version 5 src/main.swift src/PlayerStrip.swift src/SpotifyAccount.swift \
+  swiftc -target "$ARCH-apple-macosx12.0" -swift-version 5 src/main.swift src/PlayerStrip.swift src/SpotifyAccount.swift src/Localization.swift \
     ".build/TouchBarBridge-$ARCH.o" ".build/BrightnessBridge-$ARCH.o" \
     -import-objc-header src/TouchBarBridge.h -framework AppKit -framework Network -framework IOKit \
     -framework Security -framework CryptoKit -o ".build/SpotifyTouchBar-$ARCH"

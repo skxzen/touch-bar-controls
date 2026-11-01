@@ -16,7 +16,7 @@ final class SpotifyAccount {
     private var expiresAt = Date.distantPast
     private var pollTimer: Timer?
     private(set) var playback: [String: Any] = [:]
-    private(set) var status = "Compte Spotify non lié"
+    private(set) var status = tr("Compte Spotify non lié", "Spotify account not linked")
     var onChange: (() -> Void)?
     var linked: Bool { !refreshToken.isEmpty || !accessToken.isEmpty }
 
@@ -24,7 +24,7 @@ final class SpotifyAccount {
         accessToken = keychainRead("access") ?? ""
         refreshToken = keychainRead("refresh") ?? ""
         expiresAt = Date(timeIntervalSince1970: Double(keychainRead("expires") ?? "0") ?? 0)
-        if linked { status = "Compte Spotify lié" }
+        if linked { status = tr("Compte Spotify lié", "Spotify account linked") }
     }
 
     func start() {
@@ -53,14 +53,14 @@ final class SpotifyAccount {
             URLQueryItem(name: "state", value: oauthState), URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: challenge)
         ]
-        status = "Autorisation Spotify en attente…"; onChange?()
+        status = tr("Autorisation Spotify en attente…", "Waiting for Spotify authorization…"); onChange?()
         NSWorkspace.shared.open(components.url!)
     }
 
     func unlink() {
         accessToken = ""; refreshToken = ""; expiresAt = .distantPast; playback = [:]
         ["access", "refresh", "expires"].forEach(keychainDelete)
-        status = "Compte Spotify non lié"; onChange?()
+        status = tr("Compte Spotify non lié", "Spotify account not linked"); onChange?()
     }
 
     private func receiveCallback(_ connection: NWConnection, data: Data) {
@@ -83,7 +83,7 @@ final class SpotifyAccount {
         let body: String
         if !validState { status = "Échec de vérification OAuth Spotify"; body = "Échec de vérification. Tu peux fermer cette fenêtre." }
         else if let error = query["error"] { status = "Autorisation refusée : \(error)"; body = "Autorisation refusée. Tu peux fermer cette fenêtre." }
-        else if let code = query["code"] { exchange(code); body = "Spotify est lié à Touch Bar Control. Tu peux fermer cette fenêtre." }
+        else if let code = query["code"] { exchange(code); body = tr("Spotify est lié à Touch Bar Control. Tu peux fermer cette fenêtre.", "Spotify is linked to Touch Bar Control. You can close this window.") }
         else { status = "Réponse Spotify invalide"; body = "Réponse invalide. Tu peux fermer cette fenêtre." }
         let data = Data(body.utf8)
         let response = Data("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n".utf8) + data
@@ -99,7 +99,7 @@ final class SpotifyAccount {
             guard let self, let data, let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let access = object["access_token"] as? String else { self?.status = "Impossible de lier le compte Spotify"; self?.onChange?(); return }
             self.accessToken = access; if let refresh = object["refresh_token"] as? String { self.refreshToken = refresh }
             self.expiresAt = Date().addingTimeInterval(object["expires_in"] as? Double ?? 3600)
-            self.saveTokens(); self.status = "Compte Spotify lié"; self.startPollingIfNeeded(); self.onChange?()
+            self.saveTokens(); self.status = tr("Compte Spotify lié", "Spotify account linked"); self.startPollingIfNeeded(); self.onChange?()
         }.resume()
     }
 
@@ -117,7 +117,7 @@ final class SpotifyAccount {
                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 self.playback = [:]; self.onChange?(); return
             }
-            self.playback = Self.normalizedPlayback(object); self.status = "Compte Spotify lié · téléphone / Connect"; self.onChange?()
+            self.playback = Self.normalizedPlayback(object); self.status = tr("Compte Spotify lié · téléphone / Connect", "Spotify account linked · phone / Connect"); self.onChange?()
         }.resume()
     }
 
