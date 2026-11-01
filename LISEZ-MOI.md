@@ -1,6 +1,6 @@
 # Touch Bar Control
 
-Une seule app rassemble les commandes Spotify et le réglage de luminosité de la Touch Bar. Le logo Spotify est l’icône officielle, fournie comme ressource SVG locale. L’ancienne app Touch Bar Light a été arrêtée ; son fichier reste dans Applications et peut être supprimé manuellement si tu ne veux plus le conserver.
+Une seule app rassemble les commandes Spotify et le réglage de luminosité de la Touch Bar. Le logo Spotify est l’icône officielle, fournie comme ressource SVG locale.
 
 Extension Spicetify + compagnon macOS natif, sans BetterTouchTool, abonnement ni compte développeur Spotify.
 
