@@ -265,9 +265,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         showPlaylistMenu(anchor: sender)
     }
     func showPlaylistMenu(anchor: NSView? = nil) {
-        let menu = NSMenu(); menu.addItem(withTitle: tr("Chargement…", "Loading…"), action: nil, keyEquivalent: "")
-        if let anchor { menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor) }
-        else { menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil) }
         account.fetchPlaylists { [weak self] playlists in
             guard let self else { return }
             let m = NSMenu();
