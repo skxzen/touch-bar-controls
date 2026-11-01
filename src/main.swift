@@ -113,6 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     let brightnessSync = NSButton(checkboxWithTitle: tr("Synchroniser avec la luminosité de l’écran principal", "Sync with the main display brightness"), target: nil, action: nil)
     let accountButton = NSButton(title: tr("Lier mon compte Spotify", "Link my Spotify account"), target: nil, action: nil)
     let accountStatus = NSTextField(labelWithString: tr("Compte Spotify non lié", "Spotify account not linked"))
+    let playlistButton = NSButton(title: tr("Ajouter à une playlist…", "Add to playlist…"), target: nil, action: nil)
     var brightnessOriginal = -1.0
     var brightnessModified = false
     var brightnessSyncInFlight = false
@@ -172,6 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         row.spacing = 8
         let show = NSButton(title: tr("Afficher les commandes sur la Touch Bar", "Show controls on the Touch Bar"), target: self, action: #selector(showBar))
         accountButton.target = self; accountButton.action = #selector(accountAction(_:))
+        playlistButton.target = self; playlistButton.action = #selector(playlistAction(_:))
         accountStatus.textColor = .secondaryLabelColor; accountStatus.font = .systemFont(ofSize: 11)
         let preview = makeStrip()
         preview.widthAnchor.constraint(equalToConstant: 640).isActive = true
@@ -192,7 +194,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         let restore = NSButton(title: tr("Rendre la main à macOS", "Return control to macOS"), target: self, action: #selector(restoreBrightness(_:)))
         let brightnessRow = NSStackView(views: [brightnessTitle, brightnessSlider, brightnessValue]); brightnessRow.spacing = 12; brightnessRow.alignment = .centerY
         let brightnessActions = NSStackView(views: [restore, reconnect]); brightnessActions.spacing = 10
-        let accountRow = NSStackView(views: [accountButton, accountStatus]); accountRow.spacing = 12; accountRow.alignment = .centerY
+        let accountRow = NSStackView(views: [accountButton, playlistButton, accountStatus]); accountRow.spacing = 12; accountRow.alignment = .centerY
         let stack = NSStackView(views: [info, detail, preview, row, show, accountRow, divider, brightnessRow, brightnessSync, brightnessHold, brightnessStatus, brightnessActions]); stack.orientation = .vertical; stack.spacing = 11; stack.alignment = .leading
         stack.translatesAutoresizingMaskIntoConstraints = false; window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 28), stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 25)])
@@ -230,9 +232,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         let track = artist.isEmpty ? title : "\(title) — \(artist)"
         info.stringValue = online ? track : "Spotify déconnecté"
         trackButton?.title = online ? track : "Ouvre Spotify…"
-        detail.stringValue = (s["error"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (online ? "Connecté · Progression directement accessible" : "Ouvre Spotify avec l’extension activée et sélectionne un titre.")
+        let device = s["device"] as? String ?? ""
+        let connection = device.isEmpty ? tr("Lecture sur ce Mac", "Playing on this Mac") : tr("Lecture sur : \(device)", "Playing on: \(device)")
+        detail.stringValue = (s["error"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (online ? connection : tr("Spotify fermé ou aucune lecture active.", "Spotify closed or no active playback."))
         accountStatus.stringValue = account.status
         accountButton.title = account.linked ? "Délier mon compte Spotify" : "Lier mon compte Spotify"
+        playlistButton.isEnabled = account.linked && online && !((s["uri"] as? String) ?? "").isEmpty
         let repeatMode = s["repeat"] as? Int ?? 0
         let names = ["play": (s["playing"] as? Bool == true ? "⏸" : "▶"), "heart": (s["heart"] as? Bool == true ? "♥" : "♡"), "repeat": repeatMode == 2 ? "↻¹" : "↻", "mute": (s["muted"] as? Bool == true ? "🔇" : "♫")]
         for (key, list) in buttons {
@@ -251,6 +256,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         seekSlider?.isEnabled = online && duration > 0; volumeSlider?.isEnabled = online
         func time(_ ms: Double) -> String { let n = max(0, Int(ms / 1000)); return String(format: "%d:%02d", n / 60, n % 60) }
         timeLabel?.stringValue = "\(time(position)) / \(time(duration))"
+    }
+    @objc func playlistAction(_ sender: NSButton) {
+        let menu = NSMenu(); menu.addItem(withTitle: tr("Chargement…", "Loading…"), action: nil, keyEquivalent: "")
+        sender.menu = menu; sender.performClick(nil)
+        account.fetchPlaylists { [weak self, weak sender] playlists in
+            guard let self, let sender else { return }
+            let m = NSMenu();
+            if playlists.isEmpty { m.addItem(withTitle: tr("Aucune playlist disponible", "No playlists available"), action: nil, keyEquivalent: "") }
+            for playlist in playlists { let item = NSMenuItem(title: playlist.name, action: #selector(self.addToPlaylist(_:)), keyEquivalent: ""); item.target = self; item.representedObject = playlist.id; m.addItem(item) }
+            sender.menu = m; sender.performClick(nil)
+        }
+    }
+    @objc func addToPlaylist(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        account.addCurrentTrack(to: id) { [weak self] ok in
+            DispatchQueue.main.async { self?.detail.stringValue = ok ? tr("Titre ajouté à la playlist.", "Track added to playlist.") : tr("Impossible d’ajouter le titre.", "Could not add the track.") }
+        }
     }
     @objc func menuCommand(_ sender: NSMenuItem) { if let key = sender.representedObject as? String { bridge.enqueue(key) } }
     @objc func accountAction(_ sender: NSButton) { account.linked ? account.unlink() : account.login() }

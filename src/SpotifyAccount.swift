@@ -6,7 +6,7 @@ import Security
 final class SpotifyAccount {
     let clientID = "09a08fd0279c4babb78a38d10b6ea753"
     let redirectURI = "http://127.0.0.1:43822/callback"
-    let scope = "user-read-playback-state"
+    let scope = "user-read-playback-state playlist-modify-private playlist-modify-public"
     private let service = "local.spotifytouchbar.oauth"
     private var listener: NWListener?
     private var verifier = ""
@@ -121,6 +121,36 @@ final class SpotifyAccount {
         }.resume()
     }
 
+    func fetchPlaylists(completion: @escaping ([(id: String, name: String)]) -> Void) {
+        guard !accessToken.isEmpty else { completion([]); return }
+        requestJSON("https://api.spotify.com/v1/me/playlists?limit=50") { object in
+            let items = object["items"] as? [[String: Any]] ?? []
+            completion(items.compactMap { item in
+                guard let id = item["id"] as? String, let name = item["name"] as? String else { return nil }
+                return (id: id, name: name)
+            })
+        }
+    }
+
+    func addCurrentTrack(to playlistID: String, completion: @escaping (Bool) -> Void) {
+        guard let uri = playback["uri"] as? String, !uri.isEmpty, !accessToken.isEmpty else { completion(false); return }
+        var request = URLRequest(url: URL(string: "https://api.spotify.com/v1/playlists/\(playlistID)/items")!)
+        request.httpMethod = "POST"; request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["uris": [uri]])
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            completion((response as? HTTPURLResponse)?.statusCode == 201 || (response as? HTTPURLResponse)?.statusCode == 200)
+        }.resume()
+    }
+
+    private func requestJSON(_ urlString: String, completion: @escaping ([String: Any]) -> Void) {
+        var request = URLRequest(url: URL(string: urlString)!); request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            let object = (data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }) ?? [:]
+            DispatchQueue.main.async { completion(object) }
+        }.resume()
+    }
+
     private func refreshAccessToken(completion: @escaping () -> Void) {
         guard !refreshToken.isEmpty else { unlink(); return }
         var request = URLRequest(url: URL(string: "https://accounts.spotify.com/api/token")!)
@@ -146,10 +176,11 @@ final class SpotifyAccount {
         let repeatState = object["repeat_state"] as? String
         let repeatMode = repeatState == "track" ? 2 : repeatState == "context" ? 1 : 0
         let device = object["device"] as? [String: Any]; let volume = ((device?["volume_percent"] as? NSNumber)?.doubleValue ?? 0) / 100
+        let deviceName = device?["name"] as? String ?? ""
         return ["title": item["name"] as? String ?? "Spotify", "artist": artists, "artwork": artwork,
                 "uri": item["uri"] as? String ?? "", "playing": playing, "position": position,
                 "duration": duration, "volume": volume, "heart": false, "shuffle": object["shuffle_state"] as? Bool ?? false,
-                "repeat": repeatMode, "muted": false]
+                "repeat": repeatMode, "muted": false, "device": deviceName]
     }
 
     private func form(_ values: [String: String]) -> Data { values.map { "\(percent($0.key))=\(percent($0.value))" }.joined(separator: "&").data(using: .utf8)! }
