@@ -6,7 +6,7 @@ import Security
 final class SpotifyAccount {
     let clientID = "09a08fd0279c4babb78a38d10b6ea753"
     let redirectURI = "http://127.0.0.1:43822/callback"
-    let scope = "user-read-playback-state playlist-modify-private playlist-modify-public"
+    let scope = "user-read-playback-state playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public"
     private let service = "local.spotifytouchbar.oauth"
     private var listener: NWListener?
     private var verifier = ""
