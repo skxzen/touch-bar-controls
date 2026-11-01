@@ -4,9 +4,15 @@ cd "$(dirname "$0")"
 APP="$PWD/Spotify Touch Bar.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" .build
 export MACOSX_DEPLOYMENT_TARGET=12.0
-clang -fobjc-arc -c src/TouchBarBridge.m -o .build/TouchBarBridge.o
-clang -fobjc-arc -c src/BrightnessBridge.m -o .build/BrightnessBridge.o
-swiftc -target "$(uname -m)-apple-macosx12.0" -swift-version 5 src/main.swift src/PlayerStrip.swift src/SpotifyAccount.swift .build/TouchBarBridge.o .build/BrightnessBridge.o -import-objc-header src/TouchBarBridge.h -framework AppKit -framework Network -framework IOKit -framework Security -framework CryptoKit -o "$APP/Contents/MacOS/SpotifyTouchBar"
+for ARCH in arm64 x86_64; do
+  clang -arch "$ARCH" -fobjc-arc -c src/TouchBarBridge.m -o ".build/TouchBarBridge-$ARCH.o"
+  clang -arch "$ARCH" -fobjc-arc -c src/BrightnessBridge.m -o ".build/BrightnessBridge-$ARCH.o"
+  swiftc -target "$ARCH-apple-macosx12.0" -swift-version 5 src/main.swift src/PlayerStrip.swift src/SpotifyAccount.swift \
+    ".build/TouchBarBridge-$ARCH.o" ".build/BrightnessBridge-$ARCH.o" \
+    -import-objc-header src/TouchBarBridge.h -framework AppKit -framework Network -framework IOKit \
+    -framework Security -framework CryptoKit -o ".build/SpotifyTouchBar-$ARCH"
+done
+lipo -create .build/SpotifyTouchBar-arm64 .build/SpotifyTouchBar-x86_64 -output "$APP/Contents/MacOS/SpotifyTouchBar"
 cp assets/Spotify_icon.svg "$APP/Contents/Resources/Spotify_icon.svg"
 cp THIRD-PARTY-LICENSES.txt "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
