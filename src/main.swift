@@ -267,14 +267,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     func showPlaylistMenu(anchor: NSView? = nil) {
         let menu = NSMenu(); menu.addItem(withTitle: tr("Chargement…", "Loading…"), action: nil, keyEquivalent: "")
         if let anchor { menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor) }
-        else { status.menu?.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: status.button) }
+        else { menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil) }
         account.fetchPlaylists { [weak self] playlists in
             guard let self else { return }
             let m = NSMenu();
             if playlists.isEmpty { m.addItem(withTitle: tr("Aucune playlist disponible", "No playlists available"), action: nil, keyEquivalent: "") }
             for playlist in playlists { let item = NSMenuItem(title: playlist.name, action: #selector(self.addToPlaylist(_:)), keyEquivalent: ""); item.target = self; item.representedObject = playlist.id; m.addItem(item) }
             if let anchor { m.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor) }
-            else { m.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: self.status.button) }
+            else { m.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil) }
         }
     }
     @objc func addToPlaylist(_ sender: NSMenuItem) {

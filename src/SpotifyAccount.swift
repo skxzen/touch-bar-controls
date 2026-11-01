@@ -124,6 +124,10 @@ final class SpotifyAccount {
     func fetchPlaylists(completion: @escaping ([(id: String, name: String)]) -> Void) {
         guard !accessToken.isEmpty else { completion([]); return }
         requestJSON("https://api.spotify.com/v1/me/playlists?limit=50") { object in
+            if let error = object["error"] as? [String: Any], let message = error["message"] as? String {
+                self.status = tr("Spotify refuse l’accès aux playlists : \(message)", "Spotify denied playlist access: \(message)")
+                self.onChange?()
+            }
             let items = object["items"] as? [[String: Any]] ?? []
             completion(items.compactMap { item in
                 guard let id = item["id"] as? String, let name = item["name"] as? String else { return nil }
